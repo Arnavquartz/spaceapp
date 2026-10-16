@@ -1,0 +1,30 @@
+{
+  "traceId": "67b9d7624a463a098738417c7d07b753",
+  "spans": [
+    {
+      "name": "POST /bounty-proof/turn",
+      "spanId": "892113ae56bed0a6",
+      "parentSpanId": null,
+      "service": "space-api",
+      "durationMicroseconds": 884524
+    },
+    {
+      "name": "temporal.activity.runCodexAppServerTurn",
+      "spanId": "e402fa4c983ad17f",
+      "parentSpanId": "21ae7ea7fb174016",
+      "service": "space-worker",
+      "durationMicroseconds": 1000
+    },
+    {
+      "name": "temporal.workflow.codexAppServerTurnWorkflow",
+      "spanId": "21ae7ea7fb174016",
+      "parentSpanId": "892113ae56bed0a6",
+      "service": "space-worker",
+      "durationMicroseconds": 840000
+    }
+  ],
+  "connectedParentChain": true,
+  "privatePromptAndProviderOutputExcluded": true,
+  "bytes": 3402,
+  "provenance": "Unmodified response from local Jaeger query storage, not a constructed trace."
+}

@@ -1,0 +1,25 @@
+{
+  "traceId": "67b9d7624a463a098738417c7d07b753",
+  "apiSpanId": "892113ae56bed0a6",
+  "workflowId": "codex-jaeger-proof-4f72761f-9fc0-45da-9dab-5dda70f498b6",
+  "workflowType": "codexAppServerTurnWorkflow",
+  "expectedSpans": 3,
+  "apiStats": {
+    "exported": 1,
+    "dropped": 0,
+    "failed": 0
+  },
+  "workerStats": {
+    "exported": 2,
+    "dropped": 0,
+    "failed": 0
+  },
+  "request": {
+    "method": "POST",
+    "path": "/bounty-proof/turn",
+    "transport": "real loopback HTTP"
+  },
+  "collector": "Jaeger 2.22.0 OTLP/HTTP at 127.0.0.1:4318",
+  "execution": "Shipping compiled API instrumentation and workflow; one real Temporal Worker with a stub provider activity; real time-skipping Temporal server.",
+  "limitations": "Synthetic route and provider activity; this is not a live provider run or a production deployment."
+}
