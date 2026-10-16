@@ -24,6 +24,14 @@ Both shipping exporters sent OTLP/HTTP directly to a real **Jaeger 2.22.0** coll
 
 [trace-verification.json](trace-verification.json) records the checked parent relationships and synthetic prompt/output exclusion. [run.json](run.json) records execution scope and exporter counters. Jaeger may display timestamps in the browser's local timezone; the recorded UTC start time above is authoritative for this run.
 
+## Earlier Jaeger UI capture
+
+The [genuine earlier screenshot](https://raw.githubusercontent.com/Arnavquartz/spaceapp/4ff5d58550cbe1ef17ec7ea03fd10e63bf36827b/bounty-evidence/worker-otlp-traces/jaeger-trace-evidence.jpg) shows a separate manual run from **pre-rebase source `8114b78`**, with trace ID `67b9d7624a463a098738417c7d07b753` and request duration **884,524 microseconds (885 ms in the UI)**. It shows the same API → workflow → activity path. The official Jaeger demo UI rendered the unchanged JSON from that earlier local Jaeger run through its Upload control.
+
+[Immutable earlier proof folder, including its original trace JSON and verification](https://github.com/Arnavquartz/spaceapp/tree/4ff5d58550cbe1ef17ec7ea03fd10e63bf36827b/bounty-evidence/worker-otlp-traces).
+
+The current rebased run described above was verified from stored Jaeger data. **No new UI screenshot was captured for that run.** The earlier screenshot is not presented as a rendering of the current `7ca30330344a3e06bcde395f41e42aee` trace.
+
 ## Reproduce
 
 Use the supported Node 22 runtime, an unprivileged development user and official Jaeger 2.22.0. Check out and build the exact public solution:
@@ -55,4 +63,4 @@ Open the local Jaeger UI at `http://127.0.0.1:16686` and look up the new trace I
 
 Official [Jaeger 2.22 API documentation](https://www.jaegertracing.io/docs/2.22/architecture/apis/).
 
-This folder contains the raw data and the scripts needed to reproduce the trace and its screenshot. The demonstration uses a synthetic route and stub provider activity; it does not exercise a live provider or a full application deployment. The separate integration suites verify propagation between independent Temporal workers.
+This folder contains the current raw data and scripts for reproducing and inspecting the trace. The demonstration uses a synthetic route and stub provider activity; it does not exercise a live provider or a full application deployment. Separate integration suites verify propagation between independent Temporal workers.
