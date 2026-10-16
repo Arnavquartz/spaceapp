@@ -1,26 +1,26 @@
 {
-  "traceId": "67b9d7624a463a098738417c7d07b753",
+  "traceId": "7ca30330344a3e06bcde395f41e42aee",
   "spans": [
     {
       "name": "POST /bounty-proof/turn",
-      "spanId": "892113ae56bed0a6",
+      "spanId": "b5558a2b58e7fcca",
       "parentSpanId": null,
       "service": "space-api",
-      "durationMicroseconds": 884524
+      "durationMicroseconds": 713338
     },
     {
       "name": "temporal.activity.runCodexAppServerTurn",
-      "spanId": "e402fa4c983ad17f",
-      "parentSpanId": "21ae7ea7fb174016",
+      "spanId": "280d24d999c72396",
+      "parentSpanId": "8646671d74764185",
       "service": "space-worker",
       "durationMicroseconds": 1000
     },
     {
       "name": "temporal.workflow.codexAppServerTurnWorkflow",
-      "spanId": "21ae7ea7fb174016",
-      "parentSpanId": "892113ae56bed0a6",
+      "spanId": "8646671d74764185",
+      "parentSpanId": "b5558a2b58e7fcca",
       "service": "space-worker",
-      "durationMicroseconds": 840000
+      "durationMicroseconds": 665000
     }
   ],
   "connectedParentChain": true,

@@ -51,13 +51,15 @@ afterEach(async () => {
 });
 
 describe("shared OTLP payload", () => {
-  it("retains the server kind and API scope defaults without adding link fields", () => {
-    const request = otlpTraceRequest([span()], "space-api");
-    const scope = request.resourceSpans[0]!.scopeSpans[0]!;
-    expect(scope.scope).toEqual({ name: "space-api" });
-    expect(scope.spans[0]).toMatchObject({ kind: 2, status: { code: 0 } });
-    expect(scope.spans[0]).not.toHaveProperty("links");
-    expect(scope.spans[0]).not.toHaveProperty("parentSpanId");
+  it("retains the server kind and service-name scope defaults without adding link fields", () => {
+    for (const serviceName of ["space-api", "space-worker"]) {
+      const request = otlpTraceRequest([span()], serviceName);
+      const scope = request.resourceSpans[0]!.scopeSpans[0]!;
+      expect(scope.scope).toEqual({ name: serviceName });
+      expect(scope.spans[0]).toMatchObject({ kind: 2, status: { code: 0 } });
+      expect(scope.spans[0]).not.toHaveProperty("links");
+      expect(scope.spans[0]).not.toHaveProperty("parentSpanId");
+    }
   });
 
   it("exports internal spans, a custom scope and continuation links through HTTP", async () => {
@@ -104,15 +106,20 @@ describe("shared OTLP payload", () => {
       .resourceSpans[0]!.scopeSpans[0]!.spans[0]).not.toHaveProperty("links");
   });
 
-  it("allows the environment helper to select the worker scope without changing its existing arguments", async () => {
+  it("retains the environment helper's service-name scope and permits an explicit override", async () => {
     const send = vi.fn<NonNullable<OtlpSpanExporterOptions["fetch"]>>(async () => ({ ok: true }));
     vi.stubGlobal("fetch", send);
-    const created = otlpSpanExporterFromEnv({ SPACE_OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:4318" }, "space-worker", "space-worker")!;
-    exporters.push(created);
-    created.record(span({ kind: 1 }));
-    await created.flush();
-    const [, init] = send.mock.calls[0]!;
-    expect(JSON.parse(init.body).resourceSpans[0].scopeSpans[0].scope).toEqual({ name: "space-worker" });
+    for (const scopeName of [undefined, "space-worker.activities"]) {
+      const created = otlpSpanExporterFromEnv(
+        { SPACE_OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:4318" }, "space-worker", scopeName
+      )!;
+      exporters.push(created);
+      created.record(span({ kind: 1 }));
+      await created.flush();
+      const [, init] = send.mock.calls.at(-1)!;
+      expect(JSON.parse(init.body).resourceSpans[0].scopeSpans[0].scope)
+        .toEqual({ name: scopeName ?? "space-worker" });
+    }
   });
 });
 

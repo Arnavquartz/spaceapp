@@ -6,7 +6,7 @@ import {
   type ServerSpan,
   type SpanExporter,
   type SpanExporterStats
-} from "@space/contracts/otlp-span-exporter";
+} from "@space/runtime";
 import {
   createActivityObservabilityInterceptors,
   observeActivityExecution

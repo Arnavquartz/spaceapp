@@ -4,7 +4,7 @@
  *
  * Export is best effort: a bounded queue drops (and counts) spans instead of
  * growing, each POST has a deadline, and collector failures never escape to
- * callers. Import this subpath only in host code, outside workflow sandboxes.
+ * callers. Import this module only in host code, outside workflow sandboxes.
  */
 
 export interface SpanLink {
@@ -21,8 +21,8 @@ export interface ServerSpan {
   endTimeUnixNano: bigint;
   attributes: Readonly<Record<string, string | number>>;
   error: boolean;
-  /** OTLP SPAN_KIND_INTERNAL (1), or SPAN_KIND_SERVER (2, the API default). */
-  kind?: 1 | 2;
+  /** OTLP span kind; SERVER (2) unless given. Worker spans use INTERNAL (1). */
+  kind?: number;
   links?: readonly SpanLink[];
 }
 
@@ -44,7 +44,7 @@ type FetchLike = (url: string, init: { method: string; headers: Record<string, s
 export interface OtlpSpanExporterOptions {
   endpoint: string;
   serviceName: string;
-  /** Instrumentation scope; defaults to the existing API scope. */
+  /** Instrumentation scope; defaults to the service name. */
   scopeName?: string;
   fetch?: FetchLike;
   batchSize?: number;
@@ -80,7 +80,7 @@ function validLink(link: SpanLink): boolean {
     && !zeroIdPattern.test(link.traceId) && !zeroIdPattern.test(link.spanId);
 }
 
-export function otlpTraceRequest(spans: readonly ServerSpan[], serviceName: string, scopeName = "space-api") {
+export function otlpTraceRequest(spans: readonly ServerSpan[], serviceName: string, scopeName = serviceName) {
   return {
     resourceSpans: [{
       resource: { attributes: [{ key: "service.name", value: { stringValue: serviceName } }] },
@@ -188,7 +188,7 @@ export function createOtlpSpanExporter(options: OtlpSpanExporterOptions): SpanEx
 }
 
 /** The exporter configured by SPACE_OTEL_EXPORTER_OTLP_ENDPOINT, or null when export is off. */
-export function otlpSpanExporterFromEnv(env: NodeJS.ProcessEnv, serviceName: string, scopeName = "space-api"): SpanExporter | null {
+export function otlpSpanExporterFromEnv(env: NodeJS.ProcessEnv, serviceName: string, scopeName = serviceName): SpanExporter | null {
   const endpoint = env.SPACE_OTEL_EXPORTER_OTLP_ENDPOINT;
   return otlpTracesUrl(endpoint) ? createOtlpSpanExporter({ endpoint: endpoint!, serviceName, scopeName }) : null;
 }

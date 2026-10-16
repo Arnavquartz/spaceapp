@@ -22,7 +22,7 @@ async function main() {
   const [httpModule, contextModule, exporterModule, workerModule] = await Promise.all([
     load('apps/api/dist/observability.js'),
     load('apps/api/dist/trace-context.js'),
-    load('apps/api/dist/otlp-span-exporter.js'),
+    load('packages/runtime/dist/index.js'),
     load('apps/worker/dist/worker-tracing.js')
   ]);
   const endpoint = 'http://127.0.0.1:4318';

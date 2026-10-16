@@ -13,7 +13,7 @@ import {
   traceContextForRawRequest,
   traceparentForTraceId
 } from "../../api/src/trace-context.js";
-import { createOtlpSpanExporter, type SpanExporter } from "../../api/src/otlp-span-exporter.js";
+import { createOtlpSpanExporter, type SpanExporter } from "@space/runtime";
 import { noteActivityFailureReason } from "../src/activity-observability.js";
 import { createWorkerTracing } from "../src/worker-tracing.js";
 import type { TraceWorkflowInput } from "./fixtures/otlp-workflows.js";

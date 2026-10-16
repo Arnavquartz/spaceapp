@@ -10,6 +10,7 @@ import {
   traceIdFromTraceparent,
   type FailureCategory
 } from "@space/contracts";
+import type { SpanExporter } from "@space/runtime";
 import { logIdentifier, workerLog, type WorkerLogValue } from "./worker-log.js";
 import { workerMetrics, type WorkerMetrics } from "./worker-metrics.js";
 
@@ -141,8 +142,17 @@ export interface ObserveActivityDependencies {
   metrics?: WorkerMetrics;
   now?: () => number;
   cancelled?: () => boolean;
+  /** OTLP export (SPACE_OTEL_EXPORTER_OTLP_ENDPOINT): one span per activity whose input carries a traceparent. */
+  spans?: SpanExporter | null;
   workflowTrace?: { traceId: string; spanId: string };
+  /** When provided, this callback owns span export instead of the legacy spans option. */
   onFinished?: (summary: ActivityExecutionSummary) => void;
+}
+
+function activityTraceparent(args: readonly unknown[]) {
+  const found: Partial<Record<CorrelationKey, string>> = {};
+  for (const arg of args) readCorrelation(arg, found, 2);
+  return parseTraceparent(found.traceparent);
 }
 
 export interface ActivityExecutionSummary {
@@ -206,7 +216,26 @@ export async function observeActivityExecution<T>(
     });
     // Export is observational: neither a collector nor an exporter callback can
     // change the activity's result or mask its original failure.
-    try { dependencies.onFinished?.({ outcome, reasonCode, category, startedAt, endedAt, durationMs }); } catch {}
+    try {
+      if (dependencies.onFinished) {
+        dependencies.onFinished({ outcome, reasonCode, category, startedAt, endedAt, durationMs });
+      } else {
+        const parent = dependencies.spans ? activityTraceparent(args) : null;
+        if (parent) {
+          dependencies.spans!.record({
+            traceId: parent.traceId,
+            spanId: randomBytes(8).toString("hex"),
+            parentSpanId: parent.parentId,
+            name: `activity ${activityType}`,
+            startTimeUnixNano: BigInt(startedAt) * 1_000_000n,
+            endTimeUnixNano: BigInt(startedAt + durationMs) * 1_000_000n,
+            attributes: { "space.activity_type": activityType, "space.outcome": outcome, "space.attempt": info.attempt },
+            error: outcome === "FAILED" || outcome === "FAILED_RESULT",
+            kind: 1
+          });
+        }
+      }
+    } catch {}
   };
 
   try {

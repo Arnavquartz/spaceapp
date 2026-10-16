@@ -1,7 +1,7 @@
 {
-  "traceId": "67b9d7624a463a098738417c7d07b753",
-  "apiSpanId": "892113ae56bed0a6",
-  "workflowId": "codex-jaeger-proof-4f72761f-9fc0-45da-9dab-5dda70f498b6",
+  "traceId": "7ca30330344a3e06bcde395f41e42aee",
+  "apiSpanId": "b5558a2b58e7fcca",
+  "workflowId": "codex-jaeger-proof-13c609da-ea9e-427a-9b9a-4eec5ff7db4c",
   "workflowType": "codexAppServerTurnWorkflow",
   "expectedSpans": 3,
   "apiStats": {
