@@ -13,6 +13,10 @@
     "./tool-routing": {
       "types": "./dist/tool-routing.d.ts",
       "import": "./dist/tool-routing.js"
+    },
+    "./otlp-span-exporter": {
+      "types": "./dist/otlp-span-exporter.d.ts",
+      "import": "./dist/otlp-span-exporter.js"
     }
   },
   "scripts": {

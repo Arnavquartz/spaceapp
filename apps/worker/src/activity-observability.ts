@@ -29,9 +29,16 @@ export type ActivityOutcome = "COMPLETED" | "FAILED_RESULT" | "FAILED" | "CANCEL
 
 interface ActivityObservation {
   reasonCode: string | null;
+  workflowTrace?: { traceId: string; spanId: string };
 }
 
 const observations = new AsyncLocalStorage<ActivityObservation>();
+
+/** Exact workflow span carried in this activity's durable Temporal header. */
+export function currentActivityWorkflowTrace(): { traceId: string; spanId: string } | undefined {
+  const trace = observations.getStore()?.workflowTrace;
+  return trace ? { ...trace } : undefined;
+}
 
 /**
  * Called by failure recorders (for example recordCodexAppServerTurnFailure)
@@ -134,6 +141,17 @@ export interface ObserveActivityDependencies {
   metrics?: WorkerMetrics;
   now?: () => number;
   cancelled?: () => boolean;
+  workflowTrace?: { traceId: string; spanId: string };
+  onFinished?: (summary: ActivityExecutionSummary) => void;
+}
+
+export interface ActivityExecutionSummary {
+  outcome: ActivityOutcome;
+  reasonCode: string | null;
+  category: FailureCategory | null;
+  startedAt: number;
+  endedAt: number;
+  durationMs: number;
 }
 
 export async function observeActivityExecution<T>(
@@ -163,10 +181,11 @@ export async function observeActivityExecution<T>(
   if (queueMs !== null) metrics.activityScheduleToStart.observe(labels, queueMs / 1000);
   metrics.activitiesInFlight.inc(labels);
   workerLog("info", "activity.started", { ...base, queueMs });
-  const observation: ActivityObservation = { reasonCode: null };
+  const observation: ActivityObservation = { reasonCode: null, workflowTrace: dependencies.workflowTrace };
 
   const finish = (outcome: ActivityOutcome, reasonCode: string | null, errorName: string | null) => {
-    const durationMs = Math.max(0, now() - startedAt);
+    const endedAt = now();
+    const durationMs = Math.max(0, endedAt - startedAt);
     metrics.activitiesInFlight.inc(labels, -1);
     metrics.activityExecutions.inc({ activity_type: activityType, outcome });
     metrics.activityDuration.observe(labels, durationMs / 1000);
@@ -185,6 +204,9 @@ export async function observeActivityExecution<T>(
       queueMs,
       rssBytes: process.memoryUsage().rss
     });
+    // Export is observational: neither a collector nor an exporter callback can
+    // change the activity's result or mask its original failure.
+    try { dependencies.onFinished?.({ outcome, reasonCode, category, startedAt, endedAt, durationMs }); } catch {}
   };
 
   try {
