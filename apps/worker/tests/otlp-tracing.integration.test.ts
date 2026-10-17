@@ -432,7 +432,7 @@ describe("OTLP tracing with real Temporal workflows and an HTTP collector", () =
     });
     const activityTracing = tracing("space-upgraded-activity-worker");
     const activityWorker = await worker(activityQueue, activityTracing, false);
-    const result = await runWorkers([workflowWorker, activityWorker], () => environment.client.workflow.execute("traceSimpleWorkflow", {
+    const result = await runWorkers([workflowWorker, activityWorker], () => environment.client.workflow.execute("traceLegacyWorkflow", {
       taskQueue: workflowQueue, workflowId: "legacy-activity-" + suffix, workflowExecutionTimeout: "30s",
       args: [fixtureInput(activityQueue)]
     }));
@@ -443,6 +443,8 @@ describe("OTLP tracing with real Temporal workflows and an HTTP collector", () =
     expect(activity.parentSpanId).toBe(UPSTREAM_SPAN);
     expect(activity.values.w3cTraceId).toBe(TRACE_A);
     expect(collector.spans()).toHaveLength(1);
+    const payload = JSON.stringify(collector.requests);
+    for (const secret of [PRIVATE_PROMPT, PRIVATE_PATH, PRIVATE_URL, PRIVATE_RESULT]) expect(payload).not.toContain(secret);
   }, 45_000);
 
   it("replays history created without tracing, without changing historical commands or exporting spans", async () => {

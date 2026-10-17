@@ -69,3 +69,8 @@ export async function traceContinueWorkflow(input: ContinueTraceInput): Promise<
 export async function traceSimpleWorkflow(input: TraceWorkflowInput): Promise<string> {
   return activities(input).echo({ prompt: input.prompt, filePath: input.filePath });
 }
+
+/** Legacy request workflows forward their original traceparent in activity input. */
+export async function traceLegacyWorkflow(input: TraceWorkflowInput): Promise<string> {
+  return activities(input).echo(input);
+}
