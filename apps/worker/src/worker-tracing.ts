@@ -13,6 +13,8 @@ import {
 } from "./activity-observability.js";
 import {
   mergeTraceLinks,
+  WORKFLOW_TRACE_CONTEXT_HEADER,
+  traceContextFromArgs,
   readTraceContextHeaders,
   readTraceLink,
   safeTraceIdentifier,
@@ -58,9 +60,13 @@ export function createWorkerTracing(options: WorkerTracingOptions): WorkerTracin
   const tracingActivity: ActivityInterceptorsFactory = (context) => ({
     inbound: {
       execute(input, next) {
-        // Legacy histories without tracing headers retain their old behavior.
-        // In particular, never invent a workflow parent from an application ID.
-        const parent = readTraceContextHeaders(input.headers);
+        // During rolling upgrades, older workflows have no tracing header,
+        // but may carry a valid W3C traceparent in their original arguments.
+        // Parent those activity spans to the API span, not an invented workflow.
+        const workflowParent = readTraceContextHeaders(input.headers);
+        const parent = workflowParent ?? (
+          input.headers?.[WORKFLOW_TRACE_CONTEXT_HEADER] ? null : traceContextFromArgs(input.args)
+        );
         const execution = context.info.workflowExecution;
         let spanId: string | null = null;
         try {
@@ -68,7 +74,7 @@ export function createWorkerTracing(options: WorkerTracingOptions): WorkerTracin
         } catch {}
         return observeActivityExecution(context.info, input.args, () => next(input), {
           cancelled: () => context.cancellationSignal.aborted,
-          ...(parent ? { workflowTrace: { traceId: parent.traceId, spanId: parent.spanId } } : {}),
+          ...(workflowParent ? { workflowTrace: { traceId: workflowParent.traceId, spanId: workflowParent.spanId } } : {}),
           onFinished(summary) {
             if (!parent || !spanId) return;
             const type = safeTraceIdentifier(context.info.activityType) ?? "unknown";
