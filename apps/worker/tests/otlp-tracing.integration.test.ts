@@ -423,6 +423,28 @@ describe("OTLP tracing with real Temporal workflows and an HTTP collector", () =
     expect(nextActivity.parentSpanId).toBe(next.spanId);
   }, 45_000);
 
+  it("preserves activity spans from legacy workflows without trace headers", async () => {
+    const suffix = randomUUID();
+    const workflowQueue = "legacy-workflow-" + suffix;
+    const activityQueue = "legacy-activity-" + suffix;
+    const workflowWorker = await Worker.create({
+      connection: environment.nativeConnection, taskQueue: workflowQueue, workflowBundle: untracedBundle
+    });
+    const activityTracing = tracing("space-upgraded-activity-worker");
+    const activityWorker = await worker(activityQueue, activityTracing, false);
+    const result = await runWorkers([workflowWorker, activityWorker], () => environment.client.workflow.execute("traceSimpleWorkflow", {
+      taskQueue: workflowQueue, workflowId: "legacy-activity-" + suffix, workflowExecutionTimeout: "30s",
+      args: [fixtureInput(activityQueue)]
+    }));
+    await closeTracing(activityTracing);
+    expect(result).toBe(PRIVATE_RESULT);
+    const activity = only(collector.spans(), span => span.values.activityType === "echo");
+    expect(activity.traceId).toBe(TRACE_A);
+    expect(activity.parentSpanId).toBe(UPSTREAM_SPAN);
+    expect(activity.values.w3cTraceId).toBe(TRACE_A);
+    expect(collector.spans()).toHaveLength(1);
+  }, 45_000);
+
   it("replays history created without tracing, without changing historical commands or exporting spans", async () => {
     const suffix = randomUUID();
     const originalWorker = await Worker.create({
