@@ -97,6 +97,18 @@ describe("workflow trace context", () => {
     } } }])).toEqual({ missionId: "mission:one", traceId: "req:application-id", roomId: "room:one", paneId: "pane:one" });
   });
 
+  it("rejects uppercase W3C ids and avoids self-parenting", () => {
+    const uppercaseTraceparent = traceparent.toUpperCase();
+    expect(traceContextFromMemo({ traceparent: uppercaseTraceparent })).toBeNull();
+    expect(traceContextFromArgs([{ traceparent: uppercaseTraceparent }])).toBeNull();
+    expect(traceCorrelationAttributes([{ requestId: "req:same" }], {
+      spaceTraceId: "req:same", parentSpaceTraceId: "req:earlier"
+    })).toEqual({ traceId: "req:same", parentTraceId: "req:earlier" });
+    expect(traceCorrelationAttributes([{ traceId: "req:same", requestId: "req:same" }], {
+      spaceTraceId: "req:same", parentSpaceTraceId: "req:same"
+    })).toEqual({ traceId: "req:same" });
+  });
+
   it("derives stable distinct run identifiers without consuming workflow randomness", () => {
     const random = vi.spyOn(Math, "random").mockImplementation(() => { throw new Error("Workflow RNG must not be consumed"); });
     try {
