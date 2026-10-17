@@ -110,7 +110,7 @@ function readTraceContext(value: unknown): SpaceTraceContext | null {
 /** W3C context only: Space's application `traceId` is never a W3C trace id. */
 export function traceContextFromTraceparent(value: unknown): SpaceTraceContext | null {
   if (typeof value !== "string" || value.length > 512) return null;
-  const normalized = value.trim().toLowerCase();
+  const normalized = value.trim();
   const match = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})(?:-.*)?$/.exec(normalized);
   if (!match || match[1] === "ff" || (match[1] === "00" && normalized.length !== 55)) return null;
   return readTraceContext({ traceId: match[2], spanId: match[3], flags: Number.parseInt(match[4]!, 16) });
@@ -170,6 +170,7 @@ export function traceContextFromMemo(memo: Record<string, unknown> | undefined):
 export function traceCorrelationAttributes(args: readonly unknown[], memo?: Record<string, unknown>): Record<string, string> {
   const attributes: Record<string, string> = {};
   const keys = ["traceId", "roomId", "paneId", "missionId", "agentRunId", "agentSessionId", "actionId", "goalId", "dotId", "turnId", "cliTaskId", "revisionId"] as const;
+  let requestId: string | null = null;
   visitArguments(args, record => {
     for (const key of keys) {
       const value = safeTraceIdentifier(record[key]);
@@ -177,13 +178,18 @@ export function traceCorrelationAttributes(args: readonly unknown[], memo?: Reco
     }
     const missionId = safeTraceIdentifier(record.roomAgentMissionId);
     if (missionId && attributes.missionId === undefined) attributes.missionId = missionId;
-    const requestId = safeTraceIdentifier(record.requestId);
-    if (requestId && attributes.parentTraceId === undefined && requestId !== attributes.traceId) attributes.parentTraceId = requestId;
+    requestId ??= safeTraceIdentifier(record.requestId);
   });
-  for (const [key, value] of [["traceId", memo?.spaceTraceId], ["parentTraceId", memo?.parentSpaceTraceId], ["missionId", memo?.missionId]]) {
+  for (const [key, value] of [["traceId", memo?.spaceTraceId], ["missionId", memo?.missionId]]) {
     const identifier = safeTraceIdentifier(value);
     if (identifier && attributes[key as string] === undefined) attributes[key as string] = identifier;
   }
+  // Compare against the effective trace id, including any value from the memo.
+  // A trace cannot be its own parent; retain an earlier distinct parent if available.
+  const memoParent = safeTraceIdentifier(memo?.parentSpaceTraceId);
+  const parent = requestId && requestId !== attributes.traceId
+    ? requestId : memoParent && memoParent !== attributes.traceId ? memoParent : null;
+  if (parent) attributes.parentTraceId = parent;
   return attributes;
 }
 
